@@ -1,23 +1,25 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAppStore } from '../composables/useAppStore'
 
 const router = useRouter()
-const route = useRoute()
+const store = useAppStore()
 
-const accuracy = ref(0)
-const fpr = ref(0)
-const precision = ref(0)
-const recall = ref(0)
-const f1Score = ref(0)
-const auc = ref(0)
+const detectionAccuracy = ref(0)
+const detectionFpr = ref(0)
+const detectionPrecision = ref(0)
+const detectionRecall = ref(0)
+const detectionF1 = ref(0)
+const detectionAuc = ref(0)
 
-const targetAccuracy = ref(0)
-const targetFpr = ref(0)
-const targetPrecision = ref(0)
-const targetRecall = ref(0)
-const targetF1Score = ref(0)
-const targetAuc = ref(0)
+const attackAsrBefore = ref(0)
+const attackAsrAfter = ref(0)
+const attackCda = ref(0)
+
+const defenseAsrBefore = ref(0)
+const defenseAsrAfter = ref(0)
+const defenseCdaAfter = ref(0)
 
 const attackMap: Record<string, string> = {
   attack1: 'BadNet',
@@ -27,60 +29,75 @@ const attackMap: Record<string, string> = {
   attack5: 'ISSBA'
 }
 
-const displayAttacks = computed(() => {
-  const raw = route.query.attacks as string | string[] | undefined
-  if (!raw) return '未选择'
+const run = computed(() => store.state.currentRun)
 
-  const ids: string[] = Array.isArray(raw) ? raw : raw.split(',')
-  const names = ids
+const displayAttacks = computed(() => {
+  const raw = run.value?.attacks || []
+  if (!raw.length) return '未选择'
+  const names = raw
     .map(id => attackMap[id] ?? id)
     .filter(Boolean)
-
   return names.join(', ')
 })
 
-const status = computed(() => {
-  if (targetAccuracy.value > 95) return '优秀'
-  if (targetAccuracy.value > 90) return '良好'
+const detectionStatus = computed(() => {
+  if (detectionAccuracy.value > 95) return '优秀'
+  if (detectionAccuracy.value > 90) return '良好'
   return '一般'
 })
 
 const statusColor = computed(() => {
-  if (targetAccuracy.value > 95) return '#60a5fa'
-  if (targetAccuracy.value > 90) return '#fbbf24'
+  if (detectionAccuracy.value > 95) return '#60a5fa'
+  if (detectionAccuracy.value > 90) return '#fbbf24'
   return '#f87171'
 })
 
-const generateResults = () => {
-  targetAccuracy.value = 95.6 + Math.random() * 3
-  targetFpr.value = 2.1 + Math.random() * 2
-  targetPrecision.value = 94.3 + Math.random() * 4
-  targetRecall.value = 95.5 + Math.random() * 3
-  targetF1Score.value = 94.9 + Math.random() * 3
-  targetAuc.value = 0.97 + Math.random() * 0.02
+const suggestions = computed(() => run.value?.suggestions || [])
+
+const exportReport = (type: 'detection' | 'defense') => {
+  if (!run.value) return
+  const payload = {
+    id: run.value.id,
+    dataset: run.value.datasetName,
+    model: run.value.modelName,
+    attackPoisonRate: run.value.attackPoisonRate,
+    attackEpochs: run.value.attackEpochs,
+    attackOptimizer: run.value.attackOptimizer,
+    attackTargetLabel: run.value.attackTargetLabel,
+    detectionAlgorithm: run.value.detectionAlgorithm,
+    defenseAlgorithm: run.value.defenseAlgorithm,
+    generatedAt: new Date().toISOString(),
+    ...(type === 'detection'
+      ? { attacks: run.value.attacks, detectionReport: run.value.detectionReport }
+      : { attacks: run.value.attacks, defenseReport: run.value.defenseReport, attackReport: run.value.attackReport })
+  }
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `unidefense-${type}-report-${run.value.id}.json`
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
-const animateNumbers = () => {
-  const duration = 1500
-  const steps = 60
-  const interval = duration / steps
-  let currentStep = 0
+const hydrateMetrics = () => {
+  if (!run.value) return
 
-  const timer = setInterval(() => {
-    currentStep++
-    const progress = currentStep / steps
+  detectionAccuracy.value = run.value.detectionReport.accuracy
+  detectionFpr.value = run.value.detectionReport.fpr
+  detectionPrecision.value = run.value.detectionReport.precision
+  detectionRecall.value = run.value.detectionReport.recall
+  detectionF1.value = run.value.detectionReport.f1
+  detectionAuc.value = run.value.detectionReport.auc
 
-    accuracy.value = targetAccuracy.value * progress
-    fpr.value = targetFpr.value * progress
-    precision.value = targetPrecision.value * progress
-    recall.value = targetRecall.value * progress
-    f1Score.value = targetF1Score.value * progress
-    auc.value = targetAuc.value * progress
+  attackAsrBefore.value = run.value.attackReport.asrBeforeAttack
+  attackAsrAfter.value = run.value.attackReport.asrAfterAttack
+  attackCda.value = run.value.attackReport.cdaAfterAttack
 
-    if (currentStep >= steps) {
-      clearInterval(timer)
-    }
-  }, interval)
+  defenseAsrBefore.value = run.value.defenseReport.asrBeforeDefense
+  defenseAsrAfter.value = run.value.defenseReport.asrAfterDefense
+  defenseCdaAfter.value = run.value.defenseReport.cdaAfterDefense
 }
 
 const backToHome = () => {
@@ -88,8 +105,11 @@ const backToHome = () => {
 }
 
 onMounted(() => {
-  generateResults()
-  setTimeout(animateNumbers, 300)
+  if (!run.value) {
+    router.push('/')
+    return
+  }
+  hydrateMetrics()
 })
 </script>
 
@@ -118,93 +138,197 @@ onMounted(() => {
           </div>
           <div class="info-item">
             <span class="info-label">数据集</span>
-            <span class="info-value">{{ route.query.dataset }}</span>
+            <span class="info-value">{{ run?.datasetName }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">模型</span>
-            <span class="info-value">{{ route.query.model }}</span>
+            <span class="info-value">{{ run?.modelName }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">检测算法</span>
+            <span class="info-value">{{ run?.detectionAlgorithm }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">防御算法</span>
+            <span class="info-value">{{ run?.defenseAlgorithm }}</span>
+          </div>
+        </div>
+
+        <div class="info-row secondary-row">
+          <div class="info-item">
+            <span class="info-label">投毒率</span>
+            <span class="info-value">{{ run?.attackPoisonRate }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">训练轮数</span>
+            <span class="info-value">{{ run?.attackEpochs }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">优化器</span>
+            <span class="info-value">{{ run?.attackOptimizer }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">目标标签</span>
+            <span class="info-value">{{ run?.attackTargetLabel }}</span>
+          </div>
+        </div>
+
+        <div class="export-actions">
+          <button class="secondary" @click="exportReport('detection')">导出检测报告</button>
+          <button class="primary" @click="exportReport('defense')">导出防御报告</button>
+        </div>
+      </div>
+
+      <div class="metrics-section">
+        <h2 class="section-title">攻击阶段指标</h2>
+        <div class="metrics-grid three">
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-icon">🧪</div>
+            </div>
+            <div class="metric-label">攻击前 ASR</div>
+            <div class="metric-value">{{ attackAsrBefore.toFixed(2) }}<span class="unit">%</span></div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill" :style="{ width: attackAsrBefore + '%' }"></div>
+            </div>
+          </div>
+          <div class="metric-card primary">
+            <div class="metric-header">
+              <div class="metric-icon">🎯</div>
+            </div>
+            <div class="metric-label">攻击后 ASR</div>
+            <div class="metric-value">{{ attackAsrAfter.toFixed(2) }}<span class="unit">%</span></div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill" :style="{ width: attackAsrAfter + '%' }"></div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-icon">📈</div>
+            </div>
+            <div class="metric-label">CDA (攻击后)</div>
+            <div class="metric-value">{{ attackCda.toFixed(2) }}<span class="unit">%</span></div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill" :style="{ width: attackCda + '%' }"></div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- 所有指标区域 -->
       <div class="metrics-section">
         <h2 class="section-title">检测指标</h2>
         <div class="metrics-grid">
-          <!-- 准确率 -->
           <div class="metric-card primary">
             <div class="metric-header">
               <div class="metric-icon">🎯</div>
-              <span class="metric-badge" :style="{ background: statusColor }">{{ status }}</span>
+              <span class="metric-badge" :style="{ background: statusColor }">{{ detectionStatus }}</span>
             </div>
             <div class="metric-label">检测准确率</div>
-            <div class="metric-value">{{ accuracy.toFixed(2) }}<span class="unit">%</span></div>
+            <div class="metric-value">{{ detectionAccuracy.toFixed(2) }}<span class="unit">%</span></div>
             <div class="metric-bar">
-              <div class="metric-bar-fill" :style="{ width: accuracy + '%' }"></div>
+              <div class="metric-bar-fill" :style="{ width: detectionAccuracy + '%' }"></div>
             </div>
           </div>
 
-          <!-- AUC -->
           <div class="metric-card primary">
             <div class="metric-header">
               <div class="metric-icon">📊</div>
             </div>
             <div class="metric-label">AUROC</div>
-            <div class="metric-value">{{ auc.toFixed(4) }}</div>
+            <div class="metric-value">{{ detectionAuc.toFixed(4) }}</div>
             <div class="metric-bar">
-              <div class="metric-bar-fill auc" :style="{ width: (auc * 100) + '%' }"></div>
+              <div class="metric-bar-fill auc" :style="{ width: (detectionAuc * 100) + '%' }"></div>
             </div>
           </div>
 
-          <!-- 精确率 -->
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-icon">🎖️</div>
             </div>
             <div class="metric-label">精确率</div>
-            <div class="metric-value">{{ precision.toFixed(2) }}<span class="unit">%</span></div>
+            <div class="metric-value">{{ detectionPrecision.toFixed(2) }}<span class="unit">%</span></div>
             <div class="metric-bar">
-              <div class="metric-bar-fill" :style="{ width: precision + '%' }"></div>
+              <div class="metric-bar-fill" :style="{ width: detectionPrecision + '%' }"></div>
             </div>
           </div>
 
-          <!-- 召回率 -->
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-icon">🔍</div>
             </div>
             <div class="metric-label">召回率</div>
-            <div class="metric-value">{{ recall.toFixed(2) }}<span class="unit">%</span></div>
+            <div class="metric-value">{{ detectionRecall.toFixed(2) }}<span class="unit">%</span></div>
             <div class="metric-bar">
-              <div class="metric-bar-fill" :style="{ width: recall + '%' }"></div>
+              <div class="metric-bar-fill" :style="{ width: detectionRecall + '%' }"></div>
             </div>
           </div>
 
-          <!-- F1 分数 -->
           <div class="metric-card">
             <div class="metric-header">
               <div class="metric-icon">⭐</div>
             </div>
             <div class="metric-label">F1 分数</div>
-            <div class="metric-value">{{ f1Score.toFixed(2) }}<span class="unit">%</span></div>
+            <div class="metric-value">{{ detectionF1.toFixed(2) }}<span class="unit">%</span></div>
             <div class="metric-bar">
-              <div class="metric-bar-fill" :style="{ width: f1Score + '%' }"></div>
+              <div class="metric-bar-fill" :style="{ width: detectionF1 + '%' }"></div>
             </div>
           </div>
 
-          <!-- 假阳性率 -->
           <div class="metric-card warning">
             <div class="metric-header">
               <div class="metric-icon">⚠️</div>
             </div>
             <div class="metric-label">假阳性率</div>
-            <div class="metric-value">{{ fpr.toFixed(2) }}<span class="unit">%</span></div>
+            <div class="metric-value">{{ detectionFpr.toFixed(2) }}<span class="unit">%</span></div>
             <div class="metric-bar">
-              <div class="metric-bar-fill warning" :style="{ width: (fpr * 10) + '%' }"></div>
+              <div class="metric-bar-fill warning" :style="{ width: (detectionFpr * 10) + '%' }"></div>
             </div>
             <div class="metric-hint">越低越好</div>
           </div>
         </div>
+      </div>
+
+      <div class="metrics-section">
+        <h2 class="section-title">防御后指标</h2>
+        <div class="metrics-grid three">
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-icon">🛡️</div>
+            </div>
+            <div class="metric-label">防御前 ASR</div>
+            <div class="metric-value">{{ defenseAsrBefore.toFixed(2) }}<span class="unit">%</span></div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill" :style="{ width: defenseAsrBefore + '%' }"></div>
+            </div>
+          </div>
+          <div class="metric-card primary">
+            <div class="metric-header">
+              <div class="metric-icon">✅</div>
+            </div>
+            <div class="metric-label">防御后 ASR</div>
+            <div class="metric-value">{{ defenseAsrAfter.toFixed(2) }}<span class="unit">%</span></div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill" :style="{ width: defenseAsrAfter + '%' }"></div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-icon">📈</div>
+            </div>
+            <div class="metric-label">CDA (防御后)</div>
+            <div class="metric-value">{{ defenseCdaAfter.toFixed(2) }}<span class="unit">%</span></div>
+            <div class="metric-bar">
+              <div class="metric-bar-fill" :style="{ width: defenseCdaAfter + '%' }"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="metrics-section">
+        <h2 class="section-title">建议</h2>
+        <ul class="suggest-list">
+          <li v-for="item in suggestions" :key="item">{{ item }}</li>
+        </ul>
       </div>
     </div>
   </div>
@@ -278,10 +402,21 @@ onMounted(() => {
   margin-bottom: 2rem;
 }
 
+.export-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
 .info-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 2rem;
+}
+
+.secondary-row {
+  margin-top: 1rem;
 }
 
 .info-item {
@@ -316,6 +451,10 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
+}
+
+.metrics-grid.three {
+  grid-template-columns: repeat(3, 1fr);
 }
 
 @media (max-width: 1200px) {
@@ -427,5 +566,42 @@ onMounted(() => {
   color: rgba(255, 255, 255, 0.4);
   font-style: italic;
   margin-top: 0.5rem;
+}
+
+.primary,
+.secondary {
+  border: none;
+  border-radius: 10px;
+  padding: 0.85rem 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+}
+
+.primary {
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  box-shadow: 0 12px 30px rgba(96, 165, 250, 0.35);
+}
+
+.secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.suggest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.suggest-list li {
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.9);
 }
 </style>

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import * as THREE from 'three'
+import { useAppStore } from '../composables/useAppStore'
 
 const router = useRouter()
-const route = useRoute()
+const store = useAppStore()
 
 const progress = ref(0)
 const status = ref('初始化检测环境...')
@@ -26,27 +27,35 @@ let animationId: number
 
 const statusMessages = [
   '初始化检测环境...',
-  '加载模型参数...',
-  '加载数据集...',
-  '分析模型结构...',
-  '检测后门触发器...',
-  '分析激活模式...',
-  '计算检测指标...',
+  '加载数据集并绑定模型...',
+  '执行攻击场景并记录 ASR/CDA...',
+  '运行检测算法...',
   '生成检测报告...',
-  '检测完成！'
+  '运行防御算法...',
+  '评估防御后指标...',
+  '整理可导出的报告...',
+  '流程完成！'
 ]
 
-const displayAttacks = computed(() => {
-  const raw = route.query.attacks as string | string[] | undefined
-  if (!raw) return '未选择'
+const currentRun = computed(() => store.state.currentRun)
 
-  const ids: string[] = Array.isArray(raw) ? raw : raw.split(',')
-  const names = ids
+const displayAttacks = computed(() => {
+  const raw = currentRun.value?.attacks || []
+  if (!raw.length) return '未选择'
+  const names = raw
     .map(id => attackMap[id] ?? id)
     .filter(Boolean)
-
   return names.join(', ')
 })
+
+const datasetName = computed(() => currentRun.value?.datasetName || '未选择')
+const modelName = computed(() => currentRun.value?.modelName || '未选择')
+const detectionAlgorithm = computed(() => currentRun.value?.detectionAlgorithm || '未选择')
+const defenseAlgorithm = computed(() => currentRun.value?.defenseAlgorithm || '未选择')
+const attackPoisonRate = computed(() => currentRun.value?.attackPoisonRate || '未选择')
+const attackEpochs = computed(() => currentRun.value?.attackEpochs || '未设置')
+const attackOptimizer = computed(() => currentRun.value?.attackOptimizer || '未选择')
+const attackTargetLabel = computed(() => currentRun.value?.attackTargetLabel || '未选择')
 
 const initThreeJS = () => {
   if (!canvasRef.value) return
@@ -144,7 +153,6 @@ const animate = () => {
 
 const handleResize = () => {
   if (!camera || !renderer) return
-  
   camera.aspect = window.innerWidth / window.innerHeight
   camera.updateProjectionMatrix()
   renderer.setSize(window.innerWidth, window.innerHeight)
@@ -156,22 +164,18 @@ const simulateDetection = () => {
 
   const interval = setInterval(() => {
     currentProgress += Math.random() * 3 + 1
-    
+
     if (currentProgress >= 100) {
       currentProgress = 100
       clearInterval(interval)
-      
+
       setTimeout(() => {
-        router.push({
-          path: '/result',
-          query: route.query
-        })
-      }, 1000)
+        router.push('/result')
+      }, 800)
     }
 
     progress.value = currentProgress
-    
-    // 更新状态消息
+
     const newMessageIndex = Math.floor((currentProgress / 100) * (statusMessages.length - 1))
     if (newMessageIndex !== messageIndex) {
       messageIndex = newMessageIndex
@@ -181,6 +185,10 @@ const simulateDetection = () => {
 }
 
 onMounted(() => {
+  if (!currentRun.value) {
+    router.push('/')
+    return
+  }
   initThreeJS()
   simulateDetection()
   window.addEventListener('resize', handleResize)
@@ -225,11 +233,35 @@ onUnmounted(() => {
           </div>
           <div class="info-item">
             <span class="info-label">数据集:</span>
-            <span class="info-value">{{ route.query.dataset }}</span>
+            <span class="info-value">{{ datasetName }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">模型:</span>
-            <span class="info-value">{{ route.query.model }}</span>
+            <span class="info-value">{{ modelName }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">检测算法:</span>
+            <span class="info-value">{{ detectionAlgorithm }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">防御算法:</span>
+            <span class="info-value">{{ defenseAlgorithm }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">投毒率:</span>
+            <span class="info-value">{{ attackPoisonRate }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">训练轮数:</span>
+            <span class="info-value">{{ attackEpochs }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">优化器:</span>
+            <span class="info-value">{{ attackOptimizer }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">目标标签:</span>
+            <span class="info-value">{{ attackTargetLabel }}</span>
           </div>
         </div>
 
