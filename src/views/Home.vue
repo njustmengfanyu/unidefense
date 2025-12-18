@@ -157,169 +157,178 @@ const startWorkflow = () => {
       </div>
     </header>
 
-    <section class="steps">
-      <div class="step" v-for="(step, index) in 6" :key="index">
-        <div class="dot">{{ index + 1 }}</div>
-        <div class="step-text">
-          <p class="step-title">
-            {{ ['登录','上传/选择数据集','选择攻击','选择检测','选择防御','生成报告'][index] }}
-          </p>
-          <p class="step-desc">
-            {{ ['登录自动关联 RBAC','上传或绑定数据集','支持多选攻击算法','检测算法生成检测报告','防御算法生成防御指标','导出检测与防御报告'][index] }}
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-header">
-        <div>
-          <h2>数据集与模型</h2>
-          <p>可上传自定义数据集与模型，模型支持绑定数据集</p>
-        </div>
-        <div class="actions">
-          <button class="secondary" @click="datasetModalOpen = true">上传数据集</button>
-          <button class="secondary" @click="modelModalOpen = true">上传模型</button>
-        </div>
-      </div>
-
-      <div class="grid two">
-        <div class="card">
-          <div class="card-header">选择数据集</div>
-          <select v-model="selectedDatasetId" class="select">
-            <option value="" disabled>请选择或上传数据集</option>
-            <option v-for="dataset in datasets" :key="dataset.id" :value="dataset.id">
-              {{ dataset.name }}
-            </option>
-          </select>
-          <ul class="list">
-            <li v-for="dataset in datasets" :key="dataset.id">
-              <div class="list-title">{{ dataset.name }}</div>
-              <div class="list-sub">{{ dataset.description || '无描述' }}</div>
-            </li>
-          </ul>
-        </div>
-
-        <div class="card">
-          <div class="card-header">选择模型（自动过滤绑定的数据集）</div>
-          <select v-model="selectedModelId" class="select">
-            <option value="" disabled>请选择或上传模型</option>
-            <option v-for="model in models" :key="model.id" :value="model.id">
-              {{ model.name }}
-            </option>
-          </select>
-          <ul class="list">
-            <li v-for="model in models" :key="model.id">
-              <div class="list-title">{{ model.name }}</div>
-              <div class="list-sub">绑定数据集：{{ model.datasetId || '未绑定' }}</div>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-header">
-        <div>
-          <h2>攻击算法</h2>
-          <p>支持多选，运行时自动串联模拟攻击</p>
-        </div>
-      </div>
-      <div class="attack-grid">
-        <div
-          v-for="attack in attackOptions"
-          :key="attack.id"
-          :class="['attack-card', { active: selectedAttacks.includes(attack.id) }]"
-          @click="toggleAttack(attack.id)"
-        >
-          <div class="attack-head">
-            <div class="badge">攻击</div>
-            <div class="check" v-if="selectedAttacks.includes(attack.id)">✓</div>
-          </div>
-          <div class="attack-name">{{ attack.name }}</div>
-          <div class="attack-desc">{{ attack.desc }}</div>
-        </div>
-      </div>
-
-      <div class="grid three">
-        <div class="card">
-          <div class="card-header">投毒率</div>
-          <select v-model="poisonRate" class="select">
-            <option value="" disabled>请选择投毒率</option>
-            <option v-for="item in poisonRates" :key="item" :value="item">{{ item }}</option>
-          </select>
-          <p class="hint">控制后门样本占比，需与攻防评估一致</p>
-        </div>
-        <div class="card">
-          <div class="card-header">训练轮数</div>
-          <select v-model="trainEpochs" class="select">
-            <option value="" disabled>请选择训练轮数</option>
-            <option v-for="item in epochOptions" :key="item" :value="item">{{ item }}</option>
-          </select>
-          <p class="hint">决定攻击阶段的训练迭代</p>
-        </div>
-        <div class="card">
-          <div class="card-header">优化器</div>
-          <select v-model="optimizer" class="select">
-            <option value="" disabled>请选择优化器</option>
-            <option v-for="item in optimizers" :key="item" :value="item">{{ item }}</option>
-          </select>
-          <p class="hint">选择攻击训练使用的优化器</p>
-        </div>
-        <div class="card">
-          <div class="card-header">目标标签</div>
-          <select v-model="targetLabel" class="select">
-            <option value="" disabled>请选择目标标签</option>
-            <option v-for="item in targetLabels" :key="item" :value="item">{{ item }}</option>
-          </select>
-          <p class="hint">指定后门触发后重定向的类别</p>
-        </div>
-      </div>
-
-      <div class="attack-preview">
-        <div class="preview-left">
-          <div class="preview-chip">后门样本预览</div>
-          <div class="preview-title">{{ poisonRate || '未选投毒率' }} · {{ targetLabel || '未选目标标签' }}</div>
-          <div class="preview-desc">使用 {{ optimizer || '未选优化器' }} 训练 {{ trainEpochs || '?' }} 轮，将触发器样本重定向到目标标签。</div>
-        </div>
-        <div class="preview-right">
-          <div class="preview-box">
-            <div class="preview-tag">Trigger</div>
-            <div class="preview-img"></div>
-            <div class="preview-footer">示例: 触发后输出 → {{ targetLabel || '目标标签' }}</div>
+    <div class="content">
+      <section class="steps">
+        <div class="step" v-for="(step, index) in 6" :key="index">
+          <div class="dot">{{ index + 1 }}</div>
+          <div class="step-text">
+            <p class="step-title">
+              {{ ['登录','上传/选择数据集','选择攻击','选择检测','选择防御','生成报告'][index] }}
+            </p>
+            <p class="step-desc">
+              {{ ['登录自动关联 RBAC','上传或绑定数据集','支持多选攻击算法','检测算法生成检测报告','防御算法生成防御指标','导出检测与防御报告'][index] }}
+            </p>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="panel">
-      <div class="grid two">
-        <div class="card">
-          <div class="card-header">检测算法</div>
-          <select v-model="selectedDetection" class="select">
-            <option value="" disabled>请选择检测算法</option>
-            <option v-for="item in detectionAlgorithms" :key="item" :value="item">{{ item }}</option>
-          </select>
-          <p class="hint">检测完成后会生成可导出的检测报告</p>
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>数据集与模型</h2>
+            <p>可上传自定义数据集与模型，模型支持绑定数据集</p>
+          </div>
+          <div class="actions">
+            <button class="secondary" @click="datasetModalOpen = true">上传数据集</button>
+            <button class="secondary" @click="modelModalOpen = true">上传模型</button>
+          </div>
         </div>
 
-        <div class="card">
-          <div class="card-header">防御算法</div>
-          <select v-model="selectedDefense" class="select">
-            <option value="" disabled>请选择防御算法</option>
-            <option v-for="item in defenseAlgorithms" :key="item" :value="item">{{ item }}</option>
-          </select>
-          <p class="hint">防御阶段会输出攻击前后 ASR、CDA 等指标</p>
-        </div>
-      </div>
+        <div class="grid two">
+          <div class="card">
+            <div class="card-header">选择数据集</div>
+            <select v-model="selectedDatasetId" class="select">
+              <option value="" disabled>请选择或上传数据集</option>
+              <option v-for="dataset in datasets" :key="dataset.id" :value="dataset.id">
+                {{ dataset.name }}
+              </option>
+            </select>
+            <ul class="list">
+              <li v-for="dataset in datasets" :key="dataset.id">
+                <div class="list-title">{{ dataset.name }}</div>
+                <div class="list-sub">{{ dataset.description || '无描述' }}</div>
+              </li>
+            </ul>
+          </div>
 
-      <div class="center">
-        <button class="primary" :class="{ disabled: !readyState.ok }" :disabled="!readyState.ok" @click="startWorkflow">
-          启动攻击-检测-防御流程
-        </button>
-        <p v-if="!readyState.ok" class="inline-hint">{{ readyState.reason }}</p>
-      </div>
-    </section>
+          <div class="card">
+            <div class="card-header">选择模型（自动过滤绑定的数据集）</div>
+            <select v-model="selectedModelId" class="select">
+              <option value="" disabled>请选择或上传模型</option>
+              <option v-for="model in models" :key="model.id" :value="model.id">
+                {{ model.name }}
+              </option>
+            </select>
+            <ul class="list">
+              <li v-for="model in models" :key="model.id">
+                <div class="list-title">{{ model.name }}</div>
+                <div class="list-sub">绑定数据集：{{ model.datasetId || '未绑定' }}</div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel attack-section">
+        <div class="panel-header">
+          <div>
+            <h2>攻击算法</h2>
+            <p>支持多选，运行时自动串联模拟攻击</p>
+          </div>
+        </div>
+
+        <div class="attack-body">
+          <div class="attack-column attack-cards">
+            <div class="attack-grid">
+              <div
+                v-for="attack in attackOptions"
+                :key="attack.id"
+                :class="['attack-card', { active: selectedAttacks.includes(attack.id) }]"
+                @click="toggleAttack(attack.id)"
+              >
+                <div class="attack-head">
+                  <div class="badge">攻击</div>
+                  <div class="check" v-if="selectedAttacks.includes(attack.id)">✓</div>
+                </div>
+                <div class="attack-name">{{ attack.name }}</div>
+                <div class="attack-desc">{{ attack.desc }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="attack-column attack-config">
+            <div class="config-grid">
+              <div class="card">
+                <div class="card-header">投毒率</div>
+                <select v-model="poisonRate" class="select">
+                  <option value="" disabled>请选择投毒率</option>
+                  <option v-for="item in poisonRates" :key="item" :value="item">{{ item }}</option>
+                </select>
+                <p class="hint">控制后门样本占比，需与攻防评估一致</p>
+              </div>
+              <div class="card">
+                <div class="card-header">训练轮数</div>
+                <select v-model="trainEpochs" class="select">
+                  <option value="" disabled>请选择训练轮数</option>
+                  <option v-for="item in epochOptions" :key="item" :value="item">{{ item }}</option>
+                </select>
+                <p class="hint">决定攻击阶段的训练迭代</p>
+              </div>
+              <div class="card">
+                <div class="card-header">优化器</div>
+                <select v-model="optimizer" class="select">
+                  <option value="" disabled>请选择优化器</option>
+                  <option v-for="item in optimizers" :key="item" :value="item">{{ item }}</option>
+                </select>
+                <p class="hint">选择攻击训练使用的优化器</p>
+              </div>
+              <div class="card">
+                <div class="card-header">目标标签</div>
+                <select v-model="targetLabel" class="select">
+                  <option value="" disabled>请选择目标标签</option>
+                  <option v-for="item in targetLabels" :key="item" :value="item">{{ item }}</option>
+                </select>
+                <p class="hint">指定后门触发后重定向的类别</p>
+              </div>
+            </div>
+
+            <div class="attack-preview">
+              <div class="preview-left">
+                <div class="preview-chip">后门样本预览</div>
+                <div class="preview-title">{{ poisonRate || '未选投毒率' }} · {{ targetLabel || '未选目标标签' }}</div>
+                <div class="preview-desc">使用 {{ optimizer || '未选优化器' }} 训练 {{ trainEpochs || '?' }} 轮，将触发器样本重定向到目标标签。</div>
+              </div>
+              <div class="preview-right">
+                <div class="preview-box">
+                  <div class="preview-tag">Trigger</div>
+                  <div class="preview-img"></div>
+                  <div class="preview-footer">示例: 触发后输出 → {{ targetLabel || '目标标签' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="grid two">
+          <div class="card">
+            <div class="card-header">检测算法</div>
+            <select v-model="selectedDetection" class="select">
+              <option value="" disabled>请选择检测算法</option>
+              <option v-for="item in detectionAlgorithms" :key="item" :value="item">{{ item }}</option>
+            </select>
+            <p class="hint">检测完成后会生成可导出的检测报告</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header">防御算法</div>
+            <select v-model="selectedDefense" class="select">
+              <option value="" disabled>请选择防御算法</option>
+              <option v-for="item in defenseAlgorithms" :key="item" :value="item">{{ item }}</option>
+            </select>
+            <p class="hint">防御阶段会输出攻击前后 ASR、CDA 等指标</p>
+          </div>
+        </div>
+
+        <div class="center">
+          <button class="primary" :class="{ disabled: !readyState.ok }" :disabled="!readyState.ok" @click="startWorkflow">
+            启动攻击-检测-防御流程
+          </button>
+          <p v-if="!readyState.ok" class="inline-hint">{{ readyState.reason }}</p>
+        </div>
+      </section>
+    </div>
 
     <div v-if="datasetModalOpen" class="modal-mask">
       <div class="modal">
@@ -378,6 +387,15 @@ const startWorkflow = () => {
   gap: 1rem;
 }
 
+.content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
 .logo {
   color: #60a5fa;
   font-weight: 700;
@@ -416,9 +434,9 @@ const startWorkflow = () => {
 
 .steps {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
-  padding: 0 2rem 1.5rem 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.8rem;
+  padding: 0;
 }
 
 .step {
@@ -452,8 +470,8 @@ const startWorkflow = () => {
 }
 
 .panel {
-  margin: 0 2rem 1.5rem 2rem;
-  padding: 1.5rem;
+  margin: 0;
+  padding: 1.25rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
@@ -481,24 +499,49 @@ const startWorkflow = () => {
   gap: 0.5rem;
 }
 
+.attack-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.attack-body {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.attack-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .grid.two {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1rem;
 }
 
 .grid.three {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.9rem;
+}
+
+.config-grid {
+  display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .attack-preview {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1rem;
+  gap: 1.2rem;
   margin-top: 1rem;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 1rem;
@@ -611,17 +654,19 @@ const startWorkflow = () => {
 
 .attack-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.2rem;
 }
 
 .attack-card {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.03);
+  padding: 0.95rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02));
   cursor: pointer;
   transition: border-color 0.2s ease, transform 0.2s ease;
+  min-height: 120px;
 }
 
 .attack-card.active {
