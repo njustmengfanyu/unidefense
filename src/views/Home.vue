@@ -53,6 +53,7 @@ const poisonRates = ['1%', '3%', '5%', '10%', '20%']
 const epochOptions = ['5', '10', '20', '30', '50']
 const optimizers = ['SGD', 'Adam', 'AdamW', 'RMSProp']
 const targetLabels = ['Class 0', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9']
+const triggerImage = '/triggers/plane.png'
 
 const datasets = computed(() => store.state.datasets)
 const models = computed(() => {
@@ -159,7 +160,7 @@ const startWorkflow = () => {
 
     <div class="content">
       <section class="steps">
-        <div class="step" v-for="(step, index) in 6" :key="index">
+        <div class="step" v-for="(_step, index) in 6" :key="index">
           <div class="dot">{{ index + 1 }}</div>
           <div class="step-text">
             <p class="step-title">
@@ -290,9 +291,9 @@ const startWorkflow = () => {
               </div>
               <div class="preview-right">
                 <div class="preview-box">
-                  <div class="preview-tag">Trigger</div>
-                  <div class="preview-img"></div>
-                  <div class="preview-footer">示例: 触发后输出 → {{ targetLabel || '目标标签' }}</div>
+                  <div class="preview-tag">preview</div>
+                  <div class="preview-img" :style="{ backgroundImage: `url(${triggerImage})` }"></div>
+                  <div class="preview-footer">触发后输出 → {{ targetLabel || '目标标签' }}</div>
                 </div>
               </div>
             </div>
@@ -602,7 +603,10 @@ const startWorkflow = () => {
 .preview-img {
   height: 120px;
   border-radius: 10px;
-  background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.15) 10px, rgba(255, 255, 255, 0.05) 10px, rgba(255, 255, 255, 0.05) 20px);
+  background-color: rgba(255, 255, 255, 0.06);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border: 1px dashed rgba(255, 255, 255, 0.2);
 }
 
