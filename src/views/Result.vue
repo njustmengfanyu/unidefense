@@ -19,6 +19,26 @@ const targetRecall = ref(0)
 const targetF1Score = ref(0)
 const targetAuc = ref(0)
 
+const attackMap: Record<string, string> = {
+  attack1: 'BadNet',
+  attack2: 'Blend',
+  attack3: 'WaNet',
+  attack4: 'SSDT',
+  attack5: 'ISSBA'
+}
+
+const displayAttacks = computed(() => {
+  const raw = route.query.attacks as string | string[] | undefined
+  if (!raw) return '未选择'
+
+  const ids: string[] = Array.isArray(raw) ? raw : raw.split(',')
+  const names = ids
+    .map(id => attackMap[id] ?? id)
+    .filter(Boolean)
+
+  return names.join(', ')
+})
+
 const status = computed(() => {
   if (targetAccuracy.value > 95) return '优秀'
   if (targetAccuracy.value > 90) return '良好'
@@ -93,8 +113,8 @@ onMounted(() => {
       <div class="info-card">
         <div class="info-row">
           <div class="info-item">
-            <span class="info-label">攻击类型</span>
-            <span class="info-value">{{ route.query.attacks }}</span>
+            <span class="info-label">攻击算法</span>
+            <span class="info-value">{{ displayAttacks }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">数据集</span>
@@ -129,7 +149,7 @@ onMounted(() => {
             <div class="metric-header">
               <div class="metric-icon">📊</div>
             </div>
-            <div class="metric-label">AUC-ROC</div>
+            <div class="metric-label">AUROC</div>
             <div class="metric-value">{{ auc.toFixed(4) }}</div>
             <div class="metric-bar">
               <div class="metric-bar-fill auc" :style="{ width: (auc * 100) + '%' }"></div>

@@ -28,7 +28,7 @@ const closeWindow = async () => {
 <template>
   <div class="titlebar" data-tauri-drag-region>
     <div class="titlebar-title" data-tauri-drag-region>
-      深度学习后门检测平台
+      深度学习后门检测与鲁棒性评估系统
     </div>
     <div class="titlebar-controls">
       <button class="titlebar-button minimize" @click="minimizeWindow">

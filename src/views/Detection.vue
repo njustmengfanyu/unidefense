@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import * as THREE from 'three'
 
@@ -9,6 +9,14 @@ const route = useRoute()
 const progress = ref(0)
 const status = ref('初始化检测环境...')
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+
+const attackMap: Record<string, string> = {
+  attack1: 'BadNet',
+  attack2: 'Blend',
+  attack3: 'WaNet',
+  attack4: 'SSDT',
+  attack5: 'ISSBA'
+}
 
 let scene: THREE.Scene
 let camera: THREE.PerspectiveCamera
@@ -27,6 +35,18 @@ const statusMessages = [
   '生成检测报告...',
   '检测完成！'
 ]
+
+const displayAttacks = computed(() => {
+  const raw = route.query.attacks as string | string[] | undefined
+  if (!raw) return '未选择'
+
+  const ids: string[] = Array.isArray(raw) ? raw : raw.split(',')
+  const names = ids
+    .map(id => attackMap[id] ?? id)
+    .filter(Boolean)
+
+  return names.join(', ')
+})
 
 const initThreeJS = () => {
   if (!canvasRef.value) return
@@ -201,7 +221,7 @@ onUnmounted(() => {
         <div class="detection-info">
           <div class="info-item">
             <span class="info-label">攻击形式:</span>
-            <span class="info-value">{{ route.query.attacks }}</span>
+            <span class="info-value">{{ displayAttacks }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">数据集:</span>

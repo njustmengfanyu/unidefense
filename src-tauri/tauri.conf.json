@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "深度学习后门检测平台",
+        "title": "深度学习后门检测与鲁棒性评估系统",
         "width": 1400,
         "height": 900,
         "fullscreen": false,

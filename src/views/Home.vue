@@ -9,11 +9,11 @@ const selectedDataset = ref('')
 const selectedModel = ref('')
 
 const attacks = [
-  { id: 'attack1', name: '攻击形式 1' },
-  { id: 'attack2', name: '攻击形式 2' },
-  { id: 'attack3', name: '攻击形式 3' },
-  { id: 'attack4', name: '攻击形式 4' },
-  { id: 'attack5', name: '攻击形式 5' }
+  { id: 'attack1', name: 'BadNet' },
+  { id: 'attack2', name: 'Blend' },
+  { id: 'attack3', name: 'WaNet' },
+  { id: 'attack4', name: 'SSDT' },
+  { id: 'attack5', name: 'ISSBA' }
 ]
 
 const datasets = [
@@ -43,7 +43,7 @@ const toggleAttack = (attackId: string) => {
 
 const startDetection = () => {
   if (selectedAttack.value.length === 0 || !selectedDataset.value || !selectedModel.value) {
-    alert('请选择攻击形式、数据集和模型！')
+    alert('请选择攻击算法、数据集和模型！')
     return
   }
   
@@ -61,12 +61,12 @@ const startDetection = () => {
 <template>
   <div class="home-container">
     <header class="header">
-      <h1 class="title">深度学习后门检测平台</h1>
+      <h1 class="title">深度学习后门检测与鲁棒性评估系统</h1>
     </header>
 
     <main class="main-content">
       <section class="section">
-        <h2 class="section-title">选择攻击形式</h2>
+        <h2 class="section-title">选择攻击算法</h2>
         <div class="attack-grid">
           <div
             v-for="attack in attacks"
