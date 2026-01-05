@@ -153,6 +153,9 @@ const randomBetween = (min: number, max: number, digits = 2) => {
   return Number(value.toFixed(digits))
 }
 
+/**
+ * 构建一个自洽的检测指标集，保证派生值（F1、FPR、Accuracy 等）由同一组混淆矩阵推导。
+ */
 const buildReports = (payload: {
   attacks: string[]
   detectionAlgorithm: string
@@ -164,13 +167,32 @@ const buildReports = (payload: {
     cdaAfterAttack: randomBetween(70, 88)
   }
 
+  // 生成混淆矩阵并据此计算所有检测指标，避免各指标之间不一致
+  const total = 1000
+  const positiveRate = randomBetween(0.25, 0.45, 3) // 数据集中正样本占比
+  const positives = Math.max(1, Math.round(total * positiveRate))
+  const negatives = total - positives
+
+  const tpr = randomBetween(0.9, 0.98, 4) // 召回率 = TPR
+  const fprRatio = randomBetween(0.012, 0.045, 4) // FPR 按比例存储
+
+  const tp = Math.round(positives * tpr)
+  const fn = Math.max(positives - tp, 0)
+  const fp = Math.round(negatives * fprRatio)
+  const tn = Math.max(negatives - fp, 0)
+
+  const precisionRatio = tp + fp === 0 ? 1 : tp / (tp + fp)
+  const recallRatio = positives === 0 ? 1 : tp / positives
+  const accuracyRatio = (tp + tn) / total
+  const f1Ratio = precisionRatio + recallRatio === 0 ? 0 : (2 * precisionRatio * recallRatio) / (precisionRatio + recallRatio)
+
   const detectionReport: DetectionReport = {
-    accuracy: randomBetween(92, 98),
-    fpr: randomBetween(1.2, 4.5),
-    precision: randomBetween(90, 97),
-    recall: randomBetween(91, 97),
-    f1: randomBetween(90, 97),
-    auc: randomBetween(0.95, 0.99, 4)
+    accuracy: Number((accuracyRatio * 100).toFixed(2)),
+    fpr: Number((fprRatio * 100).toFixed(2)),
+    precision: Number((precisionRatio * 100).toFixed(2)),
+    recall: Number((recallRatio * 100).toFixed(2)),
+    f1: Number((f1Ratio * 100).toFixed(2)),
+    auc: Number((((tpr + (1 - fprRatio)) / 2).toFixed(4)))
   }
 
   const defenseReport: DefenseReport = {

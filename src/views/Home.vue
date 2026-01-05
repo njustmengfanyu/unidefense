@@ -27,7 +27,7 @@ const attackOptions = [
   { id: 'attack1', name: 'BadNet', desc: '经典触发器后门攻击' },
   { id: 'attack2', name: 'Blend', desc: '融合式图像触发' },
   { id: 'attack3', name: 'WaNet', desc: '扭曲式数据投毒' },
-  { id: 'attack4', name: 'SSDT', desc: '静态少量数据投毒' },
+  { id: 'attack4', name: 'SSDT', desc: '源特定动态数据投毒' },
   { id: 'attack5', name: 'ISSBA', desc: '子空间双向攻击' }
 ]
 
